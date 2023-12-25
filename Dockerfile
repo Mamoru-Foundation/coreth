@@ -6,7 +6,7 @@ ARG AVALANCHE_VERSION
 RUN mkdir -p $GOPATH/src/github.com/ava-labs
 WORKDIR $GOPATH/src/github.com/ava-labs
 
-RUN git clone -b $AVALANCHE_VERSION --single-branch https://github.com/ava-labs/avalanchego.git
+RUN git clone -b $AVALANCHE_VERSION --single-branch https://github.com/Mamoru-Foundation/avalanchego.git
 
 # Copy coreth repo into desired location
 COPY . coreth
@@ -27,6 +27,13 @@ RUN mkdir build/plugins
 
 # ============= Cleanup Stage ================
 FROM debian:11-slim AS execution
+
+ENV PACKAGES ca-certificates jq unzip\
+  bash tini cron \
+  grep curl sed gcc
+
+RUN apt-get update && apt-get install -y $PACKAGES \
+    && apt-get clean
 
 # Maintain compatibility with previous images
 RUN mkdir -p /avalanchego/build

@@ -3,6 +3,7 @@ module github.com/ava-labs/coreth
 go 1.20
 
 require (
+	github.com/Mamoru-Foundation/mamoru-sniffer-go v0.11.3
 	github.com/VictoriaMetrics/fastcache v1.10.0
 	github.com/ava-labs/avalanchego v1.10.14
 	github.com/cespare/cp v0.1.0

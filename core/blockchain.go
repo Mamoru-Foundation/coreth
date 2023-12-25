@@ -31,6 +31,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ava-labs/coreth/mamoru"
+	"github.com/ava-labs/coreth/mamoru/stats"
 	"io"
 	"runtime"
 	"strings"
@@ -276,6 +278,11 @@ type BlockChain struct {
 
 	// [acceptedLogsCache] stores recently accepted logs to improve the performance of eth_getLogs.
 	acceptedLogsCache FIFOCache[common.Hash, [][]*types.Log]
+
+	// mamoru Sniffer
+	Sniffer *mamoru.Sniffer
+	// mamoru Feeder
+	MamoruFeeder mamoru.Feeder
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -334,6 +341,11 @@ func NewBlockChain(
 	bc.validator = NewBlockValidator(chainConfig, bc, engine)
 	bc.prefetcher = newStatePrefetcher(chainConfig, bc, engine)
 	bc.processor = NewStateProcessor(chainConfig, bc, engine)
+
+	// mamoru Sniffer
+	bc.Sniffer = mamoru.NewSniffer()
+	// mamoru MamoruFeeder
+	bc.MamoruFeeder = nil
 
 	bc.hc, err = NewHeaderChain(db, chainConfig, cacheConfig, engine)
 	if err != nil {
@@ -407,6 +419,9 @@ func NewBlockChain(
 		bc.wg.Add(1)
 		go bc.dispatchTxUnindexer()
 	}
+
+	log.Info("Mamoru started")
+
 	return bc, nil
 }
 
@@ -1311,12 +1326,56 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	// Enable prefetching to pull in trie node paths while processing transactions
 	statedb.StartPrefetcher("chain")
 	activeState = statedb
-
+	//////////////////////////////////////////////////////////////
+	// Enable Debug mod and Set Mamoru Tracer
+	bc.vmConfig.Tracer = nil
+	if bc.Sniffer.CheckRequirements() {
+		bc.vmConfig.Tracer = mamoru.NewCallStackTracer(block.Transactions(), mamoru.RandStr(8)+"_"+block.Number().String(), false, mamoru.CtxBlockchain)
+	}
+	//////////////////////////////////////////////////////////////
 	// If we have a followup block, run that against the current state to pre-cache
 	// transactions and probabilistically some of the account/storage trie nodes.
 	// Process block using the parent state as reference point
 	pstart := time.Now()
 	receipts, logs, usedGas, err := bc.processor.Process(block, parent, statedb, bc.vmConfig)
+
+	log.Info("Mamoru: Processed block", "number", block.Number(), "hash", block.Hash(), "elapsed", common.PrettyDuration(time.Since(pstart)))
+	////////////////////////////////////////////////////////////
+	if bc.Sniffer.CheckRequirements() && bc.vmConfig.Tracer != nil {
+		startTime := time.Now()
+		blockNumber := block.Number()
+		log.Info("Mamoru Sniffer Start", "number", blockNumber.String(), "txs", block.Transactions().Len(), "ctx", mamoru.CtxBlockchain)
+		feeder := bc.MamoruFeeder
+		if feeder == nil {
+			feeder = mamoru.NewFeed(bc.chainConfig, stats.NewStatsBlockchain())
+		}
+
+		tracer := mamoru.NewTracer(feeder)
+		// Collect Call Trace data  from EVM
+		if callTracer, ok := bc.vmConfig.Tracer.(*mamoru.CallStackTracer); ok {
+			callFrames, err := callTracer.TakeResult()
+			if err != nil {
+				log.Error("Mamoru Sniffer Error", "err", err, "ctx", mamoru.CtxBlockchain)
+				//return it.index, err
+			} else {
+				var bytesLength int
+				for i := 0; i < len(callFrames); i++ {
+					bytesLength += len(callFrames[i].Input)
+				}
+
+				log.Info("Mamoru finish collected", "number", blockNumber.String(), "txs", block.Transactions().Len(),
+					"receipts", len(receipts), "callFrames", len(callFrames), "callFrames.input.len", bytesLength, "ctx", mamoru.CtxBlockchain)
+				tracer.FeedCallTraces(callFrames, block.NumberU64())
+			}
+		}
+
+		tracer.FeedBlock(block)
+		tracer.FeedTransactions(blockNumber, block.Time(), block.Transactions(), receipts)
+		tracer.FeedEvents(receipts)
+
+		tracer.Send(startTime, blockNumber, block.Hash(), mamoru.CtxBlockchain)
+	}
+	////////////////////////////////////////////////////////////
 	if serr := statedb.Error(); serr != nil {
 		log.Error("statedb error encountered", "err", serr, "number", block.Number(), "hash", block.Hash())
 	}

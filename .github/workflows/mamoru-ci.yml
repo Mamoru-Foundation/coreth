@@ -4,10 +4,12 @@ on:
     branches:
       - master
       - mamoru
+      - v0.12.*
   pull_request:
     branches:
       - master
       - mamoru
+      - v0.12.*
 
 jobs:
   lint:

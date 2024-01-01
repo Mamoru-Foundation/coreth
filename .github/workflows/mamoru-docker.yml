@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - mamoru
+      - v0.12.*
 
 env:
   REPOSITORY: mamorufoundation/coreth-sniffer

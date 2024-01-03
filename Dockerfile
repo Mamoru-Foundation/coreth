@@ -29,11 +29,11 @@ RUN mkdir build/plugins
 FROM debian:11-slim AS execution
 
 ENV PACKAGES ca-certificates jq unzip\
-  bash tini cron supervisor \
+  bash tini cron \
   grep curl sed gcc
 
 RUN apt-get update && apt-get install -y $PACKAGES \
-    && apt-get clean \
+    && apt-get clean
 
 # Maintain compatibility with previous images
 RUN mkdir -p /avalanchego/build

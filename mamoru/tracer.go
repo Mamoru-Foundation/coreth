@@ -1,7 +1,6 @@
 package mamoru
 
 import (
-	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"math/rand"
 	"sync"
@@ -10,7 +9,7 @@ import (
 	"github.com/Mamoru-Foundation/mamoru-sniffer-go/mamoru_sniffer"
 
 	"github.com/ava-labs/coreth/core/types"
-
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
 

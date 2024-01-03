@@ -8,62 +8,8 @@ import (
 
 	"github.com/Mamoru-Foundation/mamoru-sniffer-go/mamoru_sniffer"
 
-	"github.com/ethereum/go-ethereum"
 	"github.com/stretchr/testify/assert"
 )
-
-type StatusProgressMock struct {
-	status ethereum.SyncProgress
-}
-
-func CreateProgress(currentBlock, highestBlock uint64) *StatusProgressMock {
-	return &StatusProgressMock{
-		status: ethereum.SyncProgress{CurrentBlock: currentBlock, HighestBlock: highestBlock},
-	}
-}
-
-func (s *StatusProgressMock) Progress() ethereum.SyncProgress {
-	return s.status
-}
-
-func TestSniffer_CheckRequirements(t *testing.T) {
-	tests := []struct {
-		name   string
-		status statusProgress
-		want   bool
-	}{
-		{
-			name:   "FALSE - currentBlock == 0 && highestBlock == 0",
-			status: CreateProgress(0, 0),
-			want:   false,
-		},
-		{
-			name:   "FALSE - currentBlock < highestBlock",
-			status: CreateProgress(1, 100),
-			want:   false,
-		},
-		{
-			name:   "TRUE - currentBlock == highestBlock",
-			status: CreateProgress(10, 10),
-			want:   true,
-		},
-		{
-			name:   "TRUE - currentBlock > highestBlock",
-			status: CreateProgress(200, 10),
-			want:   true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &Sniffer{
-				status: tt.status,
-			}
-			if got := s.checkSynced(); got != tt.want {
-				t.Errorf("CheckRequirements() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
 
 func TestSniffer_isSnifferEnable(t *testing.T) {
 	t.Run("TRUE env is set 1", func(t *testing.T) {
@@ -77,7 +23,6 @@ func TestSniffer_isSnifferEnable(t *testing.T) {
 		defer unsetEnvSnifferEnable()
 		got := isSnifferEnable()
 		assert.True(t, got)
-
 	})
 	t.Run("FALSE env is set 0", func(t *testing.T) {
 		_ = os.Setenv("MAMORU_SNIFFER_ENABLE", "0")
@@ -90,14 +35,12 @@ func TestSniffer_isSnifferEnable(t *testing.T) {
 		defer unsetEnvSnifferEnable()
 		got := isSnifferEnable()
 		assert.False(t, got)
-
 	})
 	t.Run("FALSE env is not set", func(t *testing.T) {
 		_ = os.Setenv("MAMORU_SNIFFER_ENABLE", "")
 		defer unsetEnvSnifferEnable()
 		got := isSnifferEnable()
 		assert.False(t, got)
-
 	})
 }
 
@@ -118,13 +61,23 @@ func TestSniffer_connect(t *testing.T) {
 	})
 }
 
+type MocSyncProcess struct {
+	isSync bool
+}
+
+func newMocSyncProcess(isSync bool) *MocSyncProcess {
+	return &MocSyncProcess{isSync: isSync}
+}
+func (m *MocSyncProcess) Process() bool {
+	return m.isSync
+}
+
 func TestSniffer_CheckRequirements1(t *testing.T) {
 	t.Run("TRUE ", func(t *testing.T) {
 		_ = os.Setenv("MAMORU_SNIFFER_ENABLE", "true")
 		defer unsetEnvSnifferEnable()
 		SnifferConnectFunc = func() (*mamoru_sniffer.Sniffer, error) { return nil, nil }
 		s := &Sniffer{
-			status: CreateProgress(100, 5),
 			synced: true,
 		}
 		assert.True(t, s.CheckRequirements())
@@ -134,8 +87,8 @@ func TestSniffer_CheckRequirements1(t *testing.T) {
 		defer unsetEnvSnifferEnable()
 		SnifferConnectFunc = func() (*mamoru_sniffer.Sniffer, error) { return nil, nil }
 		s := &Sniffer{
-			status: CreateProgress(5, 100),
 			synced: true,
+			status: newMocSyncProcess(false),
 		}
 		assert.False(t, s.CheckRequirements())
 	})
@@ -144,7 +97,6 @@ func TestSniffer_CheckRequirements1(t *testing.T) {
 		defer unsetEnvSnifferEnable()
 		SnifferConnectFunc = func() (*mamoru_sniffer.Sniffer, error) { return nil, fmt.Errorf("Some err") }
 		s := &Sniffer{
-			status: CreateProgress(100, 5),
 			synced: true,
 		}
 		assert.False(t, s.CheckRequirements())
@@ -154,8 +106,8 @@ func TestSniffer_CheckRequirements1(t *testing.T) {
 		defer unsetEnvSnifferEnable()
 		SnifferConnectFunc = func() (*mamoru_sniffer.Sniffer, error) { return nil, nil }
 		s := &Sniffer{
-			status: CreateProgress(100, 5),
-			synced: true,
+			synced: false,
+			status: newMocSyncProcess(false),
 		}
 		assert.False(t, s.CheckRequirements())
 	})
@@ -170,7 +122,7 @@ func Test_getDeltaBlocks(t *testing.T) {
 		assert.Equal(t, want, got)
 	})
 	t.Run("Success return delta from env ", func(t *testing.T) {
-		want := int64(DefaultDelta)
+		want := DefaultDelta
 		got := getDelta()
 		assert.Equal(t, want, got)
 	})

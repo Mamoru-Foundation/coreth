@@ -1,13 +1,14 @@
 package mamoru
 
 import (
+	"math/big"
+
 	"github.com/ava-labs/coreth/core/types"
 	"github.com/ava-labs/coreth/mamoru/stats"
 	"github.com/ava-labs/coreth/params"
-	"math/big"
+	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/Mamoru-Foundation/mamoru-sniffer-go/mamoru_sniffer"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 var _ Feeder = &EthFeed{}

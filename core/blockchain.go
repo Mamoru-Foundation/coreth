@@ -1350,6 +1350,20 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	receipts, logs, usedGas, err := bc.processor.Process(block, parent, statedb, bc.vmConfig)
 
 	log.Info("Mamoru: Processed block", "number", block.Number(), "hash", block.Hash(), "elapsed", common.PrettyDuration(time.Since(pstart)))
+
+	headerBlock := rawdb.ReadHeadBlock(bc.db)
+	log.Info("Mamoru: Head block", "number", headerBlock.Number())
+
+	headHeaderBlock := rawdb.ReadHeadBlockHash(bc.db)
+
+	if headHeaderBlock == (common.Hash{}) {
+		return errors.New("could not read head block hash")
+	}
+	headBlock := bc.GetBlockByHash(headHeaderBlock)
+	log.Info("Mamoru: Head header block", "number", headBlock.Number())
+
+	lastAcceptedBlock := bc.LastAcceptedBlock()
+	log.Info("Mamoru: Last accepted block", "number", lastAcceptedBlock.Number())
 	////////////////////////////////////////////////////////////
 	if bc.Sniffer.CheckRequirements() && bc.vmConfig.Tracer != nil {
 		startTime := time.Now()

@@ -3,6 +3,10 @@ package mamoru
 import (
 	"encoding/json"
 	"errors"
+	"math/big"
+	"sync"
+	"sync/atomic"
+
 	"github.com/ava-labs/coreth/core/types"
 	"github.com/ava-labs/coreth/core/vm"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -11,10 +15,6 @@ import (
 
 	"github.com/ava-labs/coreth/vmerrs"
 	"github.com/ethereum/go-ethereum/log"
-
-	"math/big"
-	"sync"
-	"sync/atomic"
 )
 
 type CallStackFrame struct {

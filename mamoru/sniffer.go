@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/Mamoru-Foundation/mamoru-sniffer-go/mamoru_sniffer"
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -15,13 +14,12 @@ var (
 	connectMutex       sync.Mutex
 	sniffer            *mamoru_sniffer.Sniffer
 	SnifferConnectFunc = mamoru_sniffer.Connect
-	delta              = DefaultDelta
 )
 
 const DefaultDelta int64 = 50
 
 type statusProgress interface {
-	Progress() ethereum.SyncProgress
+	Process() bool
 }
 
 func mapToInterfaceSlice(m map[string]string) []interface{} {
@@ -66,26 +64,11 @@ func (s *Sniffer) checkSynced() bool {
 		return true
 	}
 
-	progress := s.status.Progress()
+	s.synced = s.status.Process()
 
-	log.Info("Mamoru Sniffer sync", "syncing", s.synced, "diff", int64(progress.HighestBlock)-int64(progress.CurrentBlock))
+	log.Info("Mamoru Sniffer sync", "syncing", s.synced)
 
-	if progress.CurrentBlock < progress.HighestBlock {
-		s.synced = false
-	}
-	if s.synced {
-		return true
-	}
-
-	if progress.CurrentBlock > 0 && progress.HighestBlock > 0 {
-		if int64(progress.HighestBlock)-int64(progress.CurrentBlock) <= getDelta() {
-			s.synced = true
-		}
-		log.Info("Mamoru Sniffer sync", "syncing", s.synced, "current", int64(progress.CurrentBlock), "highest", int64(progress.HighestBlock))
-		return s.synced
-	}
-
-	return false
+	return s.synced
 }
 
 func (s *Sniffer) SetDownloader(downloader statusProgress) {

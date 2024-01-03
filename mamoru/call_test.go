@@ -39,5 +39,4 @@ func TestCallTracer_CaptureEnter(t1 *testing.T) {
 	assert.Equal(t1, uint32(1), result[1].Depth)
 	assert.Equal(t1, uint32(2), result[2].Depth)
 	assert.Equal(t1, uint32(1), result[3].Depth)
-
 }

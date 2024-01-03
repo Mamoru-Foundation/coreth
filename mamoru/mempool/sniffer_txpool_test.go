@@ -4,6 +4,14 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"math/big"
+	"os"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"testing"
+	"time"
+
 	"github.com/ava-labs/coreth/consensus"
 	"github.com/ava-labs/coreth/consensus/dummy"
 	"github.com/ava-labs/coreth/core"
@@ -14,21 +22,11 @@ import (
 	"github.com/ava-labs/coreth/mamoru"
 	"github.com/ava-labs/coreth/mamoru/stats"
 	"github.com/ava-labs/coreth/params"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/stretchr/testify/assert"
-	"math/big"
-	"os"
-	"strings"
-	"sync"
-	"sync/atomic"
-	"testing"
-	"time"
-
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/event"
-
 	"github.com/ethereum/go-ethereum/trie"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/Mamoru-Foundation/mamoru-sniffer-go/mamoru_sniffer"
 )
@@ -184,10 +182,11 @@ func pricedTransaction(nonce uint64, gaslimit uint64, gasprice *big.Int, key *ec
 }
 
 type statusProgressMock struct {
+	isSync bool
 }
 
-func (s *statusProgressMock) Progress() ethereum.SyncProgress {
-	return ethereum.SyncProgress{CurrentBlock: 2, HighestBlock: 2}
+func (s *statusProgressMock) Process() bool {
+	return s.isSync
 }
 
 func TestMempoolSniffer(t *testing.T) {
@@ -246,7 +245,7 @@ func TestMempoolSniffer(t *testing.T) {
 
 	memSniffer := NewTxPoolBackendSniffer(ctx, pool, bChain, params.TestChainConfig, feeder, nil)
 
-	memSniffer.sniffer.SetDownloader(&statusProgressMock{})
+	memSniffer.sniffer.SetDownloader(&statusProgressMock{isSync: true})
 
 	newTxsEvent := make(chan core.NewTxsEvent, 10)
 	sub := memSniffer.txPool.SubscribeNewTxsEvent(newTxsEvent)
@@ -294,7 +293,6 @@ func TestMempoolSniffer(t *testing.T) {
 	assert.Equal(t, uint64(feeder.Txs().Len()), feeder.Stats().GetTxs(), "txs must be equal")
 	assert.Equal(t, uint64(feeder.Receipts().Len()), feeder.Stats().GetEvents(), "events must be equal")
 	assert.Equal(t, uint64(len(feeder.CallFrames())), feeder.Stats().GetTraces(), "call traces must be equal")
-
 }
 
 // validateEvents checks that the correct number of transaction addition events

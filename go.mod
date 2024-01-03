@@ -3,6 +3,7 @@ module github.com/ava-labs/coreth
 go 1.20
 
 require (
+	github.com/Mamoru-Foundation/mamoru-sniffer-go v0.10.3
 	github.com/VictoriaMetrics/fastcache v1.10.0
 	github.com/ava-labs/avalanchego v1.10.17-rc.9
 	github.com/cespare/cp v0.1.0
@@ -127,7 +128,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.11.0 // indirect
 	go.opentelemetry.io/otel/trace v1.11.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
-	go.uber.org/mock v0.2.0 // indirect
+	go.uber.org/mock v0.2.0
 	go.uber.org/multierr v1.10.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
@@ -145,5 +146,7 @@ require (
 )
 
 require (
-		github.com/Mamoru-Foundation/mamoru-sniffer-go v0.10.3 // indirect
+	github.com/NYTimes/gziphandler v1.1.1 // indirect
+	github.com/gorilla/mux v1.8.0 // indirect
+	github.com/pires/go-proxyproto v0.6.2 // indirect
 )

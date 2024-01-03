@@ -2,6 +2,7 @@ package native
 
 import (
 	"encoding/json"
+
 	"github.com/ava-labs/coreth/core/vm"
 	"github.com/ava-labs/coreth/eth/tracers"
 	"github.com/ava-labs/coreth/mamoru"

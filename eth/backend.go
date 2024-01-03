@@ -31,6 +31,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -63,6 +65,8 @@ import (
 	"github.com/ava-labs/coreth/mamoru"
 	"github.com/ava-labs/coreth/mamoru/mempool"
 	"github.com/ava-labs/coreth/mamoru/stats"
+
+	"github.com/ava-labs/coreth/mamoru/sync_state"
 )
 
 // Config contains the configuration options of the ETH protocol.
@@ -237,6 +241,26 @@ func New(
 	// Attach txpool sniffer
 	mempool.NewTxPoolBackendSniffer(context.Background(), eth.txPool, eth.blockchain, eth.blockchain.Config(),
 		mamoru.NewFeed(eth.blockchain.Config(), stats.NewStatsTxpool()), eth.blockchain.Sniffer)
+	////////////////////////////////////////////////////////
+
+	////////////////////////////////////////////////////////
+	// Attach sync processor to sniffer
+	val, ok := os.LookupEnv("MAMORU_AVALANCHE_URL")
+	if ok {
+		polishTimeEnv := os.Getenv("MAMORU_AVALANCHE_POLISH_TIME_SEC")
+		var polishTime uint
+		if polishTimeEnv != "" {
+			parseUint, err := strconv.ParseUint(polishTimeEnv, 10, 32)
+			if err != nil {
+				log.Error("MAMORU_OP_NODE_POLISH_TIME_SEC parse error", "err", err)
+				parseUint = 2
+			}
+			polishTime = uint(parseUint)
+		}
+		syncProccess := sync_state.NewSyncProcess(val, polishTime)
+		syncProccess.Start()
+		eth.blockchain.Sniffer.SetDownloader(syncProccess)
+	}
 	////////////////////////////////////////////////////////
 
 	eth.miner = miner.New(eth, &config.Miner, eth.blockchain.Config(), eth.EventMux(), eth.engine, clock)

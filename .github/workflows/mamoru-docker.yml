@@ -31,7 +31,7 @@ jobs:
           file: ./Dockerfile
           push: true
           build-args: |
-            AVALANCHE_VERSION=mamoru_v1.11.0-fuji
+            AVALANCHE_VERSION=mamoru_v1.10.18-rc.17
           tags: |
             ${{ env.REPOSITORY }}:${{ github.sha }}
           cache-to: type=local,dest=/tmp/docker-cache

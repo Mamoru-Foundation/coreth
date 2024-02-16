@@ -28,6 +28,7 @@
 package eth
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -58,6 +59,10 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
+
+	"github.com/ava-labs/coreth/mamoru"
+	"github.com/ava-labs/coreth/mamoru/mempool"
+	"github.com/ava-labs/coreth/mamoru/stats"
 )
 
 // Config contains the configuration options of the ETH protocol.
@@ -227,6 +232,12 @@ func New(
 	config.TxPool.Journal = ""
 	eth.txPool = txpool.NewTxPool(config.TxPool, eth.blockchain.Config(), eth.blockchain)
 
+	////////////////////////////////////////////////////////
+	// Attach txpool sniffer
+	mempool.NewTxPoolBackendSniffer(context.Background(), eth.txPool, eth.blockchain, eth.blockchain.Config(),
+		mamoru.NewFeed(eth.blockchain.Config(), stats.NewStatsTxpool()), eth.blockchain.Sniffer)
+	////////////////////////////////////////////////////////
+
 	eth.miner = miner.New(eth, &config.Miner, eth.blockchain.Config(), eth.EventMux(), eth.engine, clock)
 
 	allowUnprotectedTxHashes := make(map[common.Hash]struct{})
@@ -257,6 +268,8 @@ func New(
 
 	// Successful startup; push a marker and check previous unclean shutdowns.
 	eth.shutdownTracker.MarkStartup()
+
+	log.Info("Mamoru blockchain started")
 
 	return eth, nil
 }

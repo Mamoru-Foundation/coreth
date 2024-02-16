@@ -2,8 +2,7 @@ name: "Build docker image"
 on:
   push:
     branches:
-      - mamoru
-      - v0.12.*
+      - "mamoru_*"
 
 env:
   REPOSITORY: mamorufoundation/coreth-sniffer
@@ -32,7 +31,7 @@ jobs:
           file: ./Dockerfile
           push: true
           build-args: |
-            AVALANCHE_VERSION=mamoru_v1.10.18
+            AVALANCHE_VERSION=mamoru_v1.11.0-fuji
           tags: |
             ${{ env.REPOSITORY }}:${{ github.sha }}
           cache-to: type=local,dest=/tmp/docker-cache

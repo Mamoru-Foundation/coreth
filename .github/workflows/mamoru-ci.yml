@@ -3,13 +3,12 @@ on:
   push:
     branches:
       - master
-      - mamoru
-      - v0.12.*
+      - "mamoru_*"
+      -
   pull_request:
     branches:
       - master
-      - mamoru
-      - v0.12.*
+      - "mamoru_*"
 
 jobs:
   lint:
